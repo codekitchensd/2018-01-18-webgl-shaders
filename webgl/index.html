@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title>WebGL Example</title>
+	<meta charset="utf-8">
+	<meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
+	<style>
+		body {
+			color: #ffffff;
+			font-family:Monospace;
+			font-size:13px;
+			text-align:center;
+			font-weight: bold;
+
+			background-color: #000000;
+			margin: 0px;
+			overflow: hidden;
+		}
+	</style>
+</head>
+<body>
+	<canvas id="glCanvas" width="640" height="480"></canvas>
+
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/gl-matrix/2.4.0/gl-matrix-min.js"></script>
+	<script type="text/javascript">
+		// Vertex shader program
+		const vsSource = `
+			attribute vec4 aVertexPosition;
+
+			uniform mat4 uModelViewMatrix;
+			uniform mat4 uProjectionMatrix;
+
+			void main() {
+				gl_Position = uProjectionMatrix * uModelViewMatrix * aVertexPosition;
+			}
+		`;
+
+		// Fragment shader program
+		const fsSource = `
+			void main() {
+				gl_FragColor = vec4(1.0, 1.0, 1.0, 1.0);
+			}
+		`;
+
+		main();
+
+		function main() {
+			const canvas = document.querySelector("#glCanvas");
+			// Init context
+			const gl = canvas.getContext("webgl");
+
+			// if webgl works...continue
+			if (!gl) {
+				alert("It doesn't look like your browser supports webgl :(");
+				return;
+			}
+
+			const shaderProgram = initShaderProgram(gl, vsSource, fsSource);
+
+			const programInfo = {
+				program: shaderProgram,
+				attribLocations: {
+					vertexPosition: gl.getAttribLocation(shaderProgram, 'aVertexPosition'),
+				},
+				uniformLocations: {
+					projectionMatrix: gl.getUniformLocation(shaderProgram, 'uProjectionMatrix'),
+					modelViewMatrix: gl.getUniformLocation(shaderProgram, 'uModelViewMatrix')
+				},
+			};
+
+			// Set clear color
+			gl.clearColor(0.1, 0.1, 0.1, 1.0);
+			// Clear the color bufer with specified clear color
+			gl.clear(gl.COLOR_BUFFER_BIT);
+
+			var buffers = initBuffers(gl);
+			drawScene(gl, programInfo, buffers);
+
+		}
+
+		// Init a shader program
+		function initShaderProgram(gl, iVertexSource, iFragmentSource) {
+			const vertexShader = loadShader(gl, gl.VERTEX_SHADER, iVertexSource);
+			const fragmentShader = loadShader(gl, gl.FRAGMENT_SHADER, iFragmentSource);
+
+			//create program
+			const shaderProgram = gl.createProgram();
+			gl.attachShader(shaderProgram, vertexShader);
+			gl.attachShader(shaderProgram, fragmentShader);
+			gl.linkProgram(shaderProgram);
+
+			// check for failures
+			if (!gl.getProgramParameter(shaderProgram, gl.LINK_STATUS)) {
+				console.error('Unable to initialize the shader program: ' + gl.getProgramInfoLog(shaderProgram));
+				return null;
+			}
+
+			return shaderProgram;
+		}
+
+		// create a shader, upload and compile it.
+		function loadShader(gl, type, source) {
+			const shader = gl.createShader(type);
+
+			// Send the source to the shader object
+			gl.shaderSource(shader, source);
+
+			// compile
+			gl.compileShader(shader);
+
+			// success?
+			if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
+				console.error('An error occurred compiling the shader: ' + gl.getShaderInfoLog(shader));
+				gl.deleteShader(shader);
+				return null;
+			}
+
+			return shader;
+		}
+
+		function initBuffers(gl) {
+			// Create a buffer
+			const positionBuffer = gl.createBuffer();
+
+			// select positionBuffer to apply buffer operations
+			gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
+
+			// create an array of positions for a square
+			const positions = [
+				1.0, 1.0,
+				-1.0, 1.0,
+				1.0, -1.0,
+				-1.0, -1.0,
+			];
+
+			// pass the positions into Webgl using a Float32Array
+			gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(positions), gl.STATIC_DRAW);
+
+			return {
+				position: positionBuffer,
+			};
+		}
+
+		function drawScene(gl, programInfo, buffers) {
+			gl.clearColor(0.1, 0.1, 0.1, 1.0);
+			gl.clearDepth(1.0);
+			gl.enable(gl.DEPTH_TEST);
+			gl.depthFunc(gl.LEQUAL); // Near obscure far
+
+			// clear the canvas
+			gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+
+			// Create a projection matrix that represents a view through the camera.
+
+			const fieldOfView = 45 * Math.PI / 180; // in radians
+			const aspect = gl.canvas.clientWidth / gl.canvas.clientHeight;
+			const zNear = 0.1;
+			const zFar = 100.0;
+			const projectionMatrix = mat4.create();
+
+			// note: glmatrix.js always has the first argument
+		  // as the destination to receive the result.
+		  mat4.perspective(projectionMatrix,
+		  								fieldOfView,
+		  								aspect,
+		  								zNear,
+		  								zFar);
+
+		  // model or center of the scene draw position, "identity point"
+		  const modelViewMatrix = mat4.create();
+
+		  // Move the draw position to where we want to draw the square.
+		  mat4.translate(modelViewMatrix,	// destination matrix
+		  						modelViewMatrix,		// matrix to translate
+		  						[-0.0, 0.0, -6.0]); // amount to translate
+
+		  // Pull the positions from the position buffer into the
+		  // vertexPosition attribute with WebGL
+		  {
+		  	const numComponents = 2; // pull out 2 values per iteration
+		  	const type = gl.FLOAT;	 // that data is 32bit floats
+		  	const normalize = false; // don't normalize
+		  	const stride = 0;		// how many bytes to get from one to next
+		  											// 0 = use type and numComponents above
+		  	const offset = 0; 	// how many bytes in the buffer to start
+		  	gl.bindBuffer(gl.ARRAY_BUFFER, buffers.position);
+		  	gl.vertexAttribPointer(
+		  			programInfo.attribLocations.vertexPosition,
+		  			numComponents,
+		  			type,
+		  			normalize,
+		  			stride,
+		  			offset);
+		  	gl.enableVertexAttribArray(
+		  		programInfo.attribLocations.vertexPosition);
+		  }
+
+		  // tell WebGL to use our program
+		  gl.useProgram(programInfo.program);
+
+		  // Set uniforms for shader
+
+		  gl.uniformMatrix4fv(
+		  	programInfo.uniformLocations.projectionMatrix,
+		  	false,
+		  	projectionMatrix);
+		  gl.uniformMatrix4fv(
+		  	programInfo.uniformLocations.modelViewMatrix,
+		  	false,
+		  	modelViewMatrix);
+
+		  {
+		  	const offset = 0;
+		  	const vertexCount = 4;
+		  	gl.drawArrays(gl.TRIANGLE_STRIP, offset, vertexCount);
+		  }
+
+		}
+
+	</script>
+</body>
+</html>
