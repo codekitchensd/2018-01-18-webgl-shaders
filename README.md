@@ -13,13 +13,13 @@ GPUs are programmed with the OpenGL(Open Graphics Library) and modern web browse
 There are many ways to work with the WebGL API including from raw javascript. The most popular seem to be [three.js](https://threejs.org/) for 3D and [PixiJS](http://www.pixijs.com/) for 2D. My plan is to have an example of each. Though I still need to clean up the three.js example. I do have a raw example which is long, but super informative.
 
 ## Things to Know
-Vertex Shader: Takes lists of 3D points or vertices and converts them to a position on the 2D screen.
-Fragment Shader: Now with our 2D points the GPU makes triangles from every three points(fragments) and files them in with the instructions from the fragment shader. Because we have to fill in every pixel, the GPU handles interpolating between all the points ie. fading between colors.
+- **Vertex Shader:** Takes lists of 3D points or vertices and converts them to a position on the 2D screen.
+- **Fragment Shader:** Now with our 2D points the GPU makes triangles from every three points(fragments) and files them in with the instructions from the fragment shader. Because we have to fill in every pixel, the GPU handles interpolating between all the points ie. fading between colors.
 
 #### Variables
-Uniforms: Set for both the vertex and fragment shader and remain unchanged. You might pass a screen resolution or light position along this way.
-Attributes: Set for the vertex shader and remain unchangeds. Typically vertex info is passed in this way.
-Varying: Set and altered by the vertex shader but not the fragment shader. You would use this to pass information to the fragment shader from the vertex shader.
+- **Uniforms:** Set for both the vertex and fragment shader and remain unchanged. You might pass a screen resolution or light position along this way.
+- **Attributes:** Set for the vertex shader and remain unchangeds. Typically vertex info is passed in this way.
+- **Varying:** Set and altered by the vertex shader but not the fragment shader. You would use this to pass information to the fragment shader from the vertex shader.
 
 ## Good Tutorials and Info
 **[TheBookOfShaders.com](https://thebookofshaders.com/)** -- This is an awesome online book with working examples that is my #1 recommendation for shaders.
